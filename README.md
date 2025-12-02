@@ -1,153 +1,127 @@
-# Assignment 2 Starting Code Template
-*EEN1097: Edge Programming with C/C++ and Rust*
+Collaborative Robots (Cobots) Simulation
 
-## Overview
-This project demonstrates a minimal TCP client–server pair with simple graphical user interfaces built using `eframe/egui`.
+EEN1097 Assignment 2: Edge Programming with Rust
 
-* The **client** connects to `127.0.0.1:5050`, sends a small JSON message, and displays the server’s reply.
-* The **server** listens on `127.0.0.1:5050`, echoes whatever data it receives, and displays the most recent JSON payload in its UI.
+📖 Overview
 
-The aim is to show how to keep GUI programs responsive while performing blocking TCP I/O by moving networking into a background thread and sending updates back to the GUI using channels.
+This project implements a robust Client/Server architecture in Rust to simulate a collaborative robot (cobot) workspace.
 
----
+The Server functions as a central safety controller and visualizer. It renders a real-time 2D view of the workspace, tracks robot movements, and enforces safety protocols (collision avoidance and boundary limits).
 
-## Repository Structure
-```
+The Clients act as independent edge devices. They simulate robot physics locally, stream telemetry to the server, and react to control commands.
+
+The system demonstrates multithreaded networking, shared state management, and immediate mode GUI rendering using egui.
+
+📂 Repository Structure
+
 src/
-  main.rs               # Do not use
-  lib.rs                # (Optional) shared helpers/types
+  lib.rs                # Shared Data Protocol (JSON Structs & Enums)
   bin/
-    client.rs           # GUI TCP client (egui)
-    server.rs           # GUI TCP echo server (egui)
-Cargo.toml
-README.md
-```
+    client.rs           # Robot Simulator (GUI + Physics + Networking)
+    server.rs           # Central Controller (GUI + Visualization + Safety Logic)
+Cargo.toml              # Project Dependencies
+README.md               # Documentation
 
----
 
-## Client (bin/client.rs) — Outline
 
-**Purpose:**
-Send a JSON message to the server and display the response using a responsive GUI.
+🤖 Client Application (bin/client.rs)
 
-**Key Features:**
+Purpose:
+Simulates a physical robot moving in a 2D space. It handles local physics calculations and communicates with the server via TCP.
 
-* Simple `eframe/egui` UI with one button: **“Connect & Send Message”**.
-* There is a radio item that allows you to choose whether the message counts up or down.
-* Runs connection, send, and receive logic on a **background thread**.
-* The GUI thread receives updates through an **mpsc channel**.
-* Adapts the JSON message command in response to the GUI radio box settings.
-* Uses a read timeout to avoid blocking indefinitely.
-* Clean, minimal structure intended for assignment purposes -- this is not commerical-grade code.
+Key Features:
 
-An **mpsc channel** (multi-producer, single-consumer channel) in Rust is a thread-safe communication mechanism that lets multiple threads send messages to one receiving thread without sharing mutable state directly. It provides a `Sender` that can be cloned and used from any thread to push data into the channel, and a `Receiver` that the main thread (often a GUI thread) uses to read those messages in FIFO order. This allows background threads to perform blocking or long-running tasks while safely forwarding results, status updates, or events back to the main thread without risking data races or freezing the application.
+Physics Engine: Calculates position updates based on speed and directional angle ($x += speed * \cos(\theta)$).
 
----
+Mini-Map: Displays a local preview of the robot's position relative to the workspace.
 
-## Server (bin/server.rs) — Outline
+Smart Safety (Bounce Logic): When the server issues a ForceStop, the client automatically turns 180° and hops away from the boundary to prevent getting stuck.
 
-**Purpose:**
-Listen for incoming TCP connections, echo all received messages, and display them in an `egui` window.
+✨ NOVEL FEATURE: Wander Mode: A toggleable autonomous mode where the robot randomly alters its heading over time, simulating a Roomba-like rover.
 
-**Key Features:**
+🖥️ Server Application (bin/server.rs)
 
-* Binds a `TcpListener` to `127.0.0.1:5050`.
-* Serial (single-threaded) connection handling for clarity.
-* Displays the latest received message in the GUI, with pretty-printing if it is valid JSON.
-* Uses an **mpsc channel** to forward server events to the UI safely by passing commands (e.g., `COUNT_INC`, `COUNT_DEC`)
+Purpose:
+Acts as the central monitoring station. It aggregates telemetry from all clients and visualizes the collective state.
 
----
+Key Features:
 
-## Building and Running
+Visualizer: Renders the workspace boundaries, robot positions, and movement trails (last 20 points) using egui::Painter.
 
-### 1. Build the project
+Proximity Monitor: Calculates Euclidean distances between all active robots.
 
-```bash
-cargo build
-```
+Heatmap: Draws dynamic red lines between robots when they approach unsafe distances (< 75px).
 
-### 2. Run the server (must be first)
+Safety Override: Automatically sends ForceStop commands if a collision is imminent (< 50px) or a boundary is breached.
 
-```bash
+✨ NOVEL FEATURE: Global Fleet Control: Includes a "Global Speed Limit" slider that throttles the maximum speed of all connected clients simultaneously.
+
+⚙️ Architecture & Design
+
+Communication Protocol
+
+The system uses a strict JSON contract defined in lib.rs to ensure type safety across the network:
+
+RobotState: Telemetry payload (ID, X, Y, Speed, Angle, Color).
+
+ClientMessage: Upstream messages (e.g., Telemetry, Disconnect).
+
+ServerMessage: Downstream commands (e.g., ForceStop, Resume, SetSpeedLimit).
+
+Concurrency Model
+
+To ensure the GUI remains responsive at 60 FPS, blocking network operations are offloaded:
+
+Server: Spawns a main listener thread. For each new client, it spawns two dedicated threads (Reader/Writer) to handle full-duplex communication.
+
+Client: Runs network I/O on background threads, communicating with the main GUI thread via mpsc channels.
+
+State: Shared state is managed via Arc<Mutex<HashMap<String, RobotData>>>.
+
+🚀 Building and Running
+
+Prerequisites
+
+Rust (latest stable)
+
+Cargo
+
+1. Build the Project
+
+cargo build --release
+
+
+
+2. Run the Server
+
+The server must be started first to listen for incoming connections.
+
 cargo run --bin server
-```
 
-### 3. Run the client
 
-```bash
+
+3. Run Clients (Robots)
+
+Open multiple terminal instances (e.g., 3 separate terminals) and run:
+
 cargo run --bin client
-```
----
 
-## Troubleshooting
 
-* **You see a message that cargo is out of date or a feature is missing when running `cargo build`:**
-  See the section below on updating `cargo`.
 
-* **The client UI shows no response:**
-  Ensure the server is running before starting the client.
+4. Usage
 
-* **The server says the port is already in use:**
-  Ensure the server has not already been started and if so kill it.
+Identity: In each client window, enter a unique ID (e.g., "Bot A", "Bot B") and click Connect.
 
-* **Connection refused:**
-  Check that the server is running first. 
-  Check port `5050`, firewall settings, or antivirus restrictions.
+Drive: Use the sliders to control Speed and Angle.
 
-* **Timeouts or no replies:**
-  Confirm the server is bound to the correct address and is echoing data correctly.
+Wander: Enable "Wander Mode" for autonomous movement.
 
----
-## Updating rustc
+Safety Test: Drive a robot into a wall or another robot to observe the server's safety override in action.
 
-Update rustc?
+📦 Dependencies
 
-You may need to update your rustc install to buid this project. Take the following steps:
+eframe / egui: Immediate mode GUI framework.
 
-```
-PS C:\EEN1097\egui_test> rustc --version
-rustc 1.87.0 (17067e9ac 2025-05-09)
-PS C:\EEN1097\egui_test> cargo --version
-cargo 1.87.0 (99624be96 2025-05-06)
-PS C:\EEN1097\egui_test> rustup update stable
-…
-PS C:\EEN1097\egui_test> rustc --version
-rustc 1.91.0 (f8297e351 2025-10-28)
-PS C:\EEN1097\egui_test> cargo --version
-cargo 1.91.0 (ea2d97820 2025-10-10)
-```
+serde / serde_json: Serialization for JSON telemetry.
 
----
-
-## Notes for Students
-
-* Remember that GUI code should **never block**.
-  Move all blocking operations (networking, file I/O, long computations) into background threads.
-
-* Use channels (`mpsc`) to safely move data between worker threads and the UI.
-
-* Keep your project modular: `lib.rs` is a good place for shared helpers or JSON structs.
-
-* This assignment is a stepping stone toward more advanced patterns: multi-threaded servers, async Rust, and persistent TCP sessions.
-
----
-
-## Keeping the TCP Connection Alive (High-Level Overview) if necessary
-
-The sample client connects, sends a message, receives a reply, and disconnects.
-To maintain a **persistent TCP connection**, the design would need to change slightly:
-
-* Create the `TcpStream` **once** and hold it open for the program’s lifetime.
-* Wrap the stream inside `Arc<Mutex<TcpStream>>` to allow safe sharing.
-* Use:
-  * A **sending channel** (GUI → network thread) for JSON messages.
-  * A **receiving channel** (network thread → GUI) for server replies.
-* The background thread:
-  * Continuously reads from the socket (with timeouts).
-  * Writes any JSON messages received from the sending channel.
-  * Forwards replies to the GUI using the receiving channel.
-* Optionally implement:
-  * Application-level keepalives (periodic “ping” JSON).
-  * TCP keepalive options (via `socket2` crate).
-
-This approach avoids reconnecting for every message and keeps the GUI smooth.
+rand: Random number generation for autonomous behavior.
