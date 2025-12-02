@@ -1,8 +1,8 @@
-Collaborative Robots (Cobots) Simulation
+##Collaborative Robots (Cobots) Simulation
 
-EEN1097 Assignment 2: Edge Programming with Rust
+*EEN1097 Assignment 2: Edge Programming with Rust*
 
-📖 Overview
+📖 *Overview*
 
 This project implements a robust Client/Server architecture in Rust to simulate a collaborative robot (cobot) workspace.
 
@@ -12,7 +12,7 @@ The Clients act as independent edge devices. They simulate robot physics locally
 
 The system demonstrates multithreaded networking, shared state management, and immediate mode GUI rendering using egui.
 
-📂 Repository Structure
+📂 *Repository Structure*
 
 src/
   lib.rs                # Shared Data Protocol (JSON Structs & Enums)
@@ -23,7 +23,7 @@ Cargo.toml              # Project Dependencies
 README.md               # Documentation
 
 
-🤖 Client Application (bin/client.rs)
+🤖 *Client Application (bin/client.rs)*
 
 Purpose:
 Simulates a physical robot moving in a 2D space. It handles local physics calculations and communicates with the server via TCP.
@@ -55,7 +55,7 @@ Safety Override: Automatically sends ForceStop commands if a collision is immine
 
 ✨ NOVEL FEATURE: Global Fleet Control: Includes a "Global Speed Limit" slider that throttles the maximum speed of all connected clients simultaneously.
 
-⚙️ Architecture & Design
+⚙️ *Architecture & Design*
 
 Communication Protocol
 
@@ -77,7 +77,7 @@ Client: Runs network I/O on background threads, communicating with the main GUI 
 
 State: Shared state is managed via Arc<Mutex<HashMap<String, RobotData>>>.
 
-🚀 Building and Running
+🚀 *Building and Running*
 
 Prerequisites
 
@@ -114,7 +114,7 @@ Wander: Enable "Wander Mode" for autonomous movement.
 
 Safety Test: Drive a robot into a wall or another robot to observe the server's safety override in action.
 
-📦 Dependencies
+📦 *Dependencies*
 
 eframe / egui: Immediate mode GUI framework.
 
