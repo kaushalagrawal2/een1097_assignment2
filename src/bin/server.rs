@@ -319,6 +319,7 @@ fn handle_client(stream: TcpStream, robots: SharedRobots, tx_log: mpsc::Sender<S
         }
     }
 
+    
     // Cleanup
     if let Some(id) = robot_id {
         let mut guard = robots.lock().unwrap();
