@@ -23,7 +23,6 @@ Cargo.toml              # Project Dependencies
 README.md               # Documentation
 
 
-
 🤖 Client Application (bin/client.rs)
 
 Purpose:
@@ -91,7 +90,6 @@ Cargo
 cargo build --release
 
 
-
 2. Run the Server
 
 The server must be started first to listen for incoming connections.
@@ -99,13 +97,11 @@ The server must be started first to listen for incoming connections.
 cargo run --bin server
 
 
-
 3. Run Clients (Robots)
 
 Open multiple terminal instances (e.g., 3 separate terminals) and run:
 
 cargo run --bin client
-
 
 
 4. Usage
